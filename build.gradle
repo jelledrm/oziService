@@ -1,0 +1,54 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'docker'
+apply plugin: 'spring-boot'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+buildscript {
+    ext {
+        springBootVersion = '1.4.1.RELEASE'
+        gradleDockerPluginVersion = '1.2'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("se.transmode.gradle:gradle-docker:${gradleDockerPluginVersion}")
+    }
+}
+
+jar {
+    baseName = 'ozi_service'
+    version = '0.0.1-SNAPSHOT'
+}
+
+springBoot {
+    mainClass = "be.ozi.config.OZIServiceApplication"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile('org.apache.camel:camel-spring-boot-starter:2.18.0')
+    compile('org.apache.camel:camel-amqp:2.18.0')
+//    compile('org.apache.camel:camel-servlet:2.18.0')
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+}
+
+task buildDocker(type: Docker, dependsOn: build) {
+    push = false
+    applicationName = jar.baseName + "-" + jar.version.toLowerCase()
+    dockerfile = file('src/main/docker/Dockerfile')
+    doFirst {
+        copy {
+            from jar
+            into stageDir
+            rename ("${jar.baseName}-${jar.version}.jar" , "${jar.baseName}.jar")
+        }
+    }
+}
